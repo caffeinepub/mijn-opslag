@@ -192,6 +192,10 @@ function ProfileSetupDialog({
 // ─────────────────────────────────────────────
 // Upload area
 // ─────────────────────────────────────────────
+const ACCEPTED_TYPES =
+  "image/*,video/*,application/pdf,.doc,.docx,.txt,.xls,.xlsx";
+const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200 MB
+
 function UploadArea({
   uploading,
   progress,
@@ -230,7 +234,7 @@ function UploadArea({
       <input
         type="file"
         multiple
-        accept="*/*"
+        accept={ACCEPTED_TYPES}
         disabled={uploading}
         className="sr-only"
         onClick={(e) => {
@@ -260,6 +264,9 @@ function UploadArea({
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
               Sleep hier naartoe of tik om te bladeren
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Foto&apos;s, video&apos;s en documenten (max 200 MB)
             </p>
           </div>
           <span className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground text-xs font-medium px-4 py-1.5 rounded-full pointer-events-none">
@@ -531,6 +538,14 @@ export default function App() {
   const handleFiles = async (fileList: FileList) => {
     const filesArr = Array.from(fileList);
     for (const file of filesArr) {
+      // Check file size before uploading
+      if (file.size > MAX_FILE_SIZE) {
+        toast.error(
+          `${file.name} is te groot (max 200 MB). Trim de video kort of kies een kleiner bestand.`,
+        );
+        continue;
+      }
+
       setUploadProgress(0);
       try {
         await uploadFile.mutateAsync({
@@ -539,8 +554,10 @@ export default function App() {
         });
         toast.success(`${file.name} geüpload`);
       } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : "Onbekende fout";
-        toast.error(`Upload mislukt voor ${file.name}: ${msg}`);
+        console.error("Upload error:", err);
+        toast.error(
+          `Upload mislukt voor ${file.name}. Controleer je internetverbinding en probeer opnieuw.`,
+        );
       }
     }
     setUploadProgress(0);
@@ -643,7 +660,7 @@ export default function App() {
               <input
                 type="file"
                 multiple
-                accept="*/*"
+                accept={ACCEPTED_TYPES}
                 className="sr-only"
                 onClick={(e) => {
                   (e.currentTarget as HTMLInputElement).value = "";
@@ -812,7 +829,7 @@ export default function App() {
             <input
               type="file"
               multiple
-              accept="*/*"
+              accept={ACCEPTED_TYPES}
               className="sr-only"
               onClick={(e) => {
                 (e.currentTarget as HTMLInputElement).value = "";
