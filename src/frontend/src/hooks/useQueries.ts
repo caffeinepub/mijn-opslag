@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { FileMetadata, UserProfile } from "../backend";
-import { ExternalBlob } from "../backend";
+import type { ExternalBlob } from "../backend";
 import { useActor } from "./useActor";
 import { useInternetIdentity } from "./useInternetIdentity";
+import { useStorageClient } from "./useStorageClient";
 
 export function useGetCallerUserProfile() {
   const { actor, isFetching: actorFetching } = useActor();
@@ -62,6 +63,7 @@ export function useGetFiles() {
 export function useUploadFile() {
   const { actor } = useActor();
   const { identity } = useInternetIdentity();
+  const storageClient = useStorageClient();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -73,17 +75,15 @@ export function useUploadFile() {
       onProgress?: (pct: number) => void;
     }) => {
       if (!actor || !identity) throw new Error("Niet ingelogd");
+      if (!storageClient) throw new Error("Opslag niet beschikbaar");
 
-      const arrayBuffer = await file.arrayBuffer();
-      const bytes = new Uint8Array(arrayBuffer);
-      let blob = ExternalBlob.fromBytes(bytes);
-      if (onProgress) {
-        blob = blob.withUploadProgress(onProgress);
-      }
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const { hash } = await storageClient.putFile(bytes, onProgress);
+      const content = new TextEncoder().encode(`!caf!${hash}`);
 
       const metadata: FileMetadata = {
         id: crypto.randomUUID(),
-        content: blob as unknown as Uint8Array,
+        content,
         name: file.name,
         size: BigInt(file.size),
         user: identity.getPrincipal(),
