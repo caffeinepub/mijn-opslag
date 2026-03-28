@@ -555,9 +555,8 @@ export default function App() {
         toast.success(`${file.name} geüpload`);
       } catch (err: unknown) {
         console.error("Upload error:", err);
-        toast.error(
-          `Upload mislukt voor ${file.name}. Controleer je internetverbinding en probeer opnieuw.`,
-        );
+        const msg = err instanceof Error ? err.message : String(err);
+        toast.error(`Upload mislukt voor ${file.name}: ${msg}`);
       }
     }
     setUploadProgress(0);
